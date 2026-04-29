@@ -59,7 +59,7 @@ export default function DriversView() {
       // Use a temporary Supabase client to avoid logging out the admin
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
-      
+
       const tempSupabase = createClient(supabaseUrl, supabaseAnonKey, {
         auth: {
           persistSession: false,
@@ -142,13 +142,13 @@ export default function DriversView() {
     if (!deleteDriverId) return
     setIsDeleting(true)
     setDeleteError('')
-    
+
     try {
       const { error } = await supabase.rpc('delete_driver', {
         target_driver_id: deleteDriverId
       })
       if (error) throw error
-      
+
       setDrivers(drivers.filter(d => d.id !== deleteDriverId))
       setDeleteDriverId(null)
     } catch (err: any) {
@@ -267,23 +267,23 @@ export default function DriversView() {
               <p className="text-sm text-gray-500 mb-6">
                 Are you sure you want to delete this driver? This action cannot be undone and will remove all their access.
               </p>
-              
+
               {deleteError && (
                 <div className="w-full mb-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl p-3">
                   {deleteError}
                 </div>
               )}
-              
+
               <div className="flex gap-3 w-full">
-                <button 
-                  onClick={() => setDeleteDriverId(null)} 
+                <button
+                  onClick={() => setDeleteDriverId(null)}
                   disabled={isDeleting}
                   className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-xl font-semibold hover:bg-gray-200 transition disabled:opacity-50"
                 >
                   Cancel
                 </button>
-                <button 
-                  onClick={executeDelete} 
+                <button
+                  onClick={executeDelete}
                   disabled={isDeleting}
                   className="flex-1 bg-red-600 text-white py-2.5 rounded-xl font-bold hover:bg-red-700 transition disabled:opacity-70 flex items-center justify-center"
                 >
