@@ -70,7 +70,7 @@ export default function AdminDashboard() {
       </aside>
 
       {/* ── Main column ── */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 h-dvh overflow-hidden">
 
         {/* Mobile top header */}
         <header className="lg:hidden bg-slate-900 text-white px-4 h-14 flex items-center justify-between sticky top-0 z-30 pt-safe flex-shrink-0">
