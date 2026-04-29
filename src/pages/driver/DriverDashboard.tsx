@@ -51,32 +51,32 @@ export default function DriverDashboard() {
   const isProfileActive = location.pathname.includes('/profile')
 
   return (
-    <div className="flex flex-col bg-gray-50" style={{ minHeight: '100dvh' }}>
+    <div className="flex flex-col bg-gray-50 h-screen h-[100dvh] overflow-hidden">
 
       {/* Header — pushes below status bar */}
-      <header className="bg-slate-900 text-white sticky top-0 z-40 pt-safe">
+      <header className="bg-slate-900 text-white flex-shrink-0 pt-safe shadow-lg z-40">
         <div className="max-w-md mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center">
-            <div className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-              <span className="font-bold text-sm">{driverName ? driverName[0].toUpperCase() : 'DR'}</span>
+            <div className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center mr-3 flex-shrink-0 border border-slate-700">
+              <span className="font-bold text-sm text-emerald-400">{driverName ? driverName[0].toUpperCase() : 'DR'}</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-semibold text-white leading-tight">{driverName || "Today's Route"}</span>
-              <span className={`text-xs font-medium leading-tight ${gpsActive ? 'text-emerald-400' : 'text-slate-500'}`}>
-                {gpsActive ? '● GPS Active' : '○ GPS Off'}
+              <span className="text-sm font-bold text-white leading-tight truncate max-w-[120px]">{driverName || "Driver"}</span>
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${gpsActive ? 'text-emerald-400' : 'text-slate-500'}`}>
+                {gpsActive ? 'GPS Active' : 'GPS Off'}
               </span>
             </div>
           </div>
           <div className="flex items-center gap-1">
             <button
               onClick={toggleGPS}
-              className={`w-11 h-11 flex items-center justify-center rounded-xl transition-colors ${gpsActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}
+              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-90 ${gpsActive ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}
             >
               <Radio className="w-5 h-5" />
             </button>
             <button
               onClick={() => setShowLogoutConfirm(true)}
-              className="w-11 h-11 flex items-center justify-center rounded-xl text-slate-400 bg-slate-800"
+              className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 bg-slate-800 border border-slate-700 active:scale-90 transition-all"
             >
               <LogOut className="w-5 h-5" />
             </button>
@@ -89,7 +89,7 @@ export default function DriverDashboard() {
         {gpsError && (
           <motion.div
             initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-            className="bg-red-600 text-white text-xs text-center overflow-hidden flex items-center justify-center gap-2 px-4 py-2"
+            className="bg-red-600 text-white text-xs text-center overflow-hidden flex items-center justify-center gap-2 px-4 py-2 flex-shrink-0"
           >
             <AlertTriangle className="w-4 h-4 flex-shrink-0" />
             <span>{gpsError}</span>
@@ -98,14 +98,16 @@ export default function DriverDashboard() {
         )}
       </AnimatePresence>
 
-      {/* Main content — scrollable, padded for bottom nav + safe area */}
-      <main className="flex-1 w-full max-w-md mx-auto px-4 pt-4 pb-24">
-        <Routes>
-          <Route path="/"              element={<RouteView />} />
-          <Route path="/stop/:stopId"  element={<StopDetail />} />
-          <Route path="/summary"       element={<CashSummary />} />
-          <Route path="/profile"       element={<DriverProfile />} />
-        </Routes>
+      {/* Main content — THIS IS THE SCROLLABLE AREA */}
+      <main className="flex-1 w-full max-w-md mx-auto overflow-y-auto overflow-x-hidden touch-pan-y outline-none">
+        <div className="px-4 pt-4 pb-32">
+          <Routes>
+            <Route path="/"              element={<RouteView />} />
+            <Route path="/stop/:stopId"  element={<StopDetail />} />
+            <Route path="/summary"       element={<CashSummary />} />
+            <Route path="/profile"       element={<DriverProfile />} />
+          </Routes>
+        </div>
       </main>
 
       {/* Logout modal */}

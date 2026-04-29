@@ -168,13 +168,10 @@ export default function RouteView() {
       </div>
 
       {/* Stop list */}
-      <div className="space-y-3">
-        {stops.map((stop, i) => (
-          <motion.div
+      <div className="space-y-3 pb-8">
+        {stops.map((stop) => (
+          <div
             key={stop.id}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.04 }}
             onClick={() => navigate(`/driver/stop/${stop.id}`)}
             className={`relative border rounded-2xl p-4 shadow-sm active:scale-[0.98] transition-transform ${STATUS_BG[stop.status]}`}
           >
@@ -217,7 +214,7 @@ export default function RouteView() {
                 <Navigation className="w-4 h-4" /> Navigate
               </button>
             )}
-          </motion.div>
+          </div>
         ))}
       </div>
     </div>
