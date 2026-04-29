@@ -8,10 +8,7 @@ import { useAuth } from '../../contexts/AuthContext'
 export default function Login() {
   const [method, setMethod] = useState<'email' | 'phone'>('email')
   const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
-  const [otp, setOtp] = useState('')
-  const [otpSent, setOtpSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
@@ -48,43 +45,6 @@ export default function Login() {
       }
     } catch (err: any) {
       setError(err.message || 'Login failed')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handlePhoneSendOTP = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
-
-    try {
-      const fullPhone = `+91${phone.replace(/\s/g, '')}`
-      const { error } = await supabase.auth.signInWithOtp({ phone: fullPhone })
-      if (error) throw error
-      setOtpSent(true)
-    } catch (err: any) {
-      setError(err.message || 'Failed to send OTP')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handlePhoneVerifyOTP = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
-
-    try {
-      const fullPhone = `+91${phone.replace(/\s/g, '')}`
-      const { error } = await supabase.auth.verifyOtp({
-        phone: fullPhone,
-        token: otp,
-        type: 'sms',
-      })
-      if (error) throw error
-    } catch (err: any) {
-      setError(err.message || 'Invalid OTP')
     } finally {
       setLoading(false)
     }
@@ -138,7 +98,7 @@ export default function Login() {
               <Mail className="w-4 h-4 mr-2" /> Email
             </button>
             <button
-              onClick={() => { setMethod('phone'); setError(''); setOtpSent(false) }}
+              onClick={() => { setMethod('phone'); setError('') }}
               className={`flex-1 flex justify-center items-center py-2 text-sm font-medium rounded-md transition-all ${
                 method === 'phone' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
