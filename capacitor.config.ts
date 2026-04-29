@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
-  appId: 'com.d2c.delivery.driver',
+  appId: 'com.ae.delivery',
   appName: 'AE Delivery',
   webDir: 'dist',
   server: {

@@ -210,61 +210,25 @@ export default function Login() {
             </form>
           )}
 
-          {/* Phone OTP form */}
-          {method === 'phone' && !otpSent && (
-            <form className="space-y-5" onSubmit={handlePhoneSendOTP}>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Phone number</label>
-                <div className="mt-1 flex rounded-md shadow-sm">
-                  <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">+91</span>
-                  <input
-                    type="tel"
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="flex-1 min-w-0 block w-full px-3 py-2.5 rounded-none rounded-r-xl border border-gray-300 focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-50/50"
-                    placeholder="90000 00000"
-                  />
-                </div>
+          {/* Phone OTP — Coming Soon */}
+          {method === 'phone' && (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Smartphone className="w-8 h-8 text-primary-500" />
               </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Coming Soon</h3>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                Phone OTP login will be available soon.<br />
+                Please use Email login for now.
+              </p>
               <button
-                type="submit"
-                disabled={loading}
-                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 transition-colors group"
+                type="button"
+                onClick={() => setMethod('email')}
+                className="mt-5 text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
               >
-                {loading ? 'Sending...' : 'Send OTP'}
-                {!loading && <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />}
+                ← Switch to Email login
               </button>
-            </form>
-          )}
-
-          {/* OTP verification */}
-          {method === 'phone' && otpSent && (
-            <form className="space-y-5" onSubmit={handlePhoneVerifyOTP}>
-              <p className="text-sm text-gray-600 text-center mb-4">OTP sent to <strong>+91 {phone}</strong></p>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Enter OTP</label>
-                <input
-                  type="text"
-                  required
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  className="mt-1 appearance-none block w-full px-3 py-2.5 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-50/50 text-center tracking-[0.5em] text-lg font-bold"
-                  placeholder="000000"
-                  maxLength={6}
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 transition-colors"
-              >
-                {loading ? 'Verifying...' : 'Verify OTP'}
-              </button>
-              <button type="button" onClick={() => setOtpSent(false)} className="w-full text-sm text-gray-500 hover:text-primary-600">
-                ← Change number
-              </button>
-            </form>
+            </div>
           )}
         </div>
       </motion.div>

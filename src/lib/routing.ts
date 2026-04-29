@@ -26,7 +26,7 @@ export async function geocodeAddress(address: string): Promise<Location | null> 
     const q = encodeURIComponent(`${address}, Bangalore, Karnataka, India`)
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`,
-      { headers: { 'User-Agent': 'D2C-Delivery-Platform/1.0' } }
+      { headers: { 'User-Agent': 'AE-Delivery-Platform/1.0' } }
     )
     const data = await res.json()
     if (data[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
