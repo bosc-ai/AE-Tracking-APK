@@ -1,6 +1,6 @@
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { ShoppingBag, User, LogOut, ShoppingCart } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../contexts/AuthContext'
 import { useCart } from '../../contexts/CartContext'
 import Catalog from './Catalog'
 import Cart from './Cart'
@@ -10,10 +10,11 @@ export default function CustomerDashboard() {
   const navigate = useNavigate()
   const location = useLocation()
   const { items } = useCart()
+  const { signOut } = useAuth()
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    window.location.href = '/login'
+    await signOut()
+    navigate('/login', { replace: true })
   }
 
   const cartItemCount = items.reduce((total, item) => total + item.quantity, 0)

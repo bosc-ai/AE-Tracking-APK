@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, IndianRupee, CheckCircle2, XCircle, Loader2, Clock, Package, RefreshCw, X, Phone } from 'lucide-react'
+import { ArrowLeft, IndianRupee, CheckCircle2, XCircle, Loader2, Clock, Package, RefreshCw, X, Phone, CalendarDays } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
+import DateRangePicker from '../../components/DateRangePicker'
 
 type RawStop = {
   stop_id: string
@@ -80,13 +81,18 @@ export default function CashSummary() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [activeFilter, setActiveFilter] = useState<FilterKey | null>(null)
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0])
+  const [endDate, setEndDate]   = useState(new Date().toISOString().split('T')[0])
 
-  useEffect(() => { if (user) loadSummary() }, [user])
+  useEffect(() => { if (user) loadSummary() }, [user, startDate, endDate])
 
   async function loadSummary() {
     setLoading(true)
     setLoadError('')
-    const { data, error } = await supabase.rpc('get_driver_today_stops')
+    const { data, error } = await supabase.rpc('get_driver_stops', { 
+      p_start_date: startDate,
+      p_end_date: endDate 
+    })
     if (error) { setLoadError(error.message); setLoading(false); return }
     setRawStops((data || []) as RawStop[])
     setLoading(false)
@@ -99,10 +105,10 @@ export default function CashSummary() {
   )
 
   if (loadError) return (
-    <div className="flex flex-col items-center justify-center py-24 text-center px-4">
+    <div className="flex flex-col items-center justify-center py-24 text-center px-4 bg-white min-h-screen">
       <XCircle className="w-16 h-16 text-red-300 mb-4" />
       <p className="text-gray-500 text-sm mb-6">{loadError}</p>
-      <button onClick={loadSummary} className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2">
+      <button onClick={loadSummary} className="bg-primary-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-primary-600/20">
         <RefreshCw className="w-4 h-4" /> Retry
       </button>
     </div>
@@ -130,13 +136,26 @@ export default function CashSummary() {
       </button>
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-2xl font-extrabold text-gray-900">End-of-Day Summary</h2>
-          <button onClick={loadSummary} className="text-gray-400 hover:text-gray-600 p-1">
-            <RefreshCw className="w-5 h-5" />
-          </button>
+        <div className="flex flex-col gap-3 mb-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-black text-gray-900">Summary</h2>
+            <button onClick={loadSummary} className="text-gray-300 hover:text-primary-600 p-2 bg-gray-50 rounded-xl transition-colors">
+              <RefreshCw className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="flex items-center justify-between bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="w-4 h-4 text-gray-400" />
+              <span className="text-sm font-bold text-gray-700">Filter Range</span>
+            </div>
+            <DateRangePicker 
+              startDate={startDate}
+              endDate={endDate}
+              onChange={(s, e) => { setStartDate(s); setEndDate(e) }}
+              align="right"
+            />
+          </div>
         </div>
-        <p className="text-gray-500 text-sm mb-6">Tap a card to see order details.</p>
       </motion.div>
 
       {/* Stats Grid — clickable */}
@@ -160,16 +179,16 @@ export default function CashSummary() {
       </div>
 
       {/* Payment breakdown */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-3">
+      <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-3">
         <h3 className="font-bold text-gray-900 text-sm">Payment Breakdown</h3>
-        <div className="flex items-center justify-between py-2 border-b border-gray-100 text-sm">
-          <span className="text-gray-600">Cash (COD) Collected</span>
+        <div className="flex items-center justify-between py-2 border-b border-gray-50 text-sm">
+          <span className="text-gray-500">Cash (COD) Collected</span>
           <span className="font-bold text-gray-900 flex items-center">
             <IndianRupee className="w-3.5 h-3.5 mr-0.5" /> {codCollected.toLocaleString()}
           </span>
         </div>
         <div className="flex items-center justify-between py-2 text-sm">
-          <span className="text-gray-600">Online (Pre-paid)</span>
+          <span className="text-gray-500">Online (Pre-paid)</span>
           <span className="font-bold text-gray-900 flex items-center">
             <IndianRupee className="w-3.5 h-3.5 mr-0.5" /> {onlineTotal.toLocaleString()}
           </span>
@@ -177,11 +196,12 @@ export default function CashSummary() {
       </div>
 
       {/* Total Card */}
-      <div className="bg-slate-900 text-white rounded-2xl p-5 shadow-xl">
+      <div className="bg-white text-gray-900 rounded-2xl p-5 shadow-sm border border-gray-100 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 blur-3xl rounded-full -mr-16 -mt-16" />
         <div className="flex justify-between items-end">
           <div>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">To Hand Over</span>
-            <div className="text-2xl font-black mt-1 flex items-center text-emerald-400">
+            <div className="text-2xl font-black mt-1 flex items-center text-primary-600">
               <IndianRupee className="w-5 h-5 mr-0.5" /> {codCollected.toLocaleString()}
             </div>
           </div>

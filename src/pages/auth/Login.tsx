@@ -51,15 +51,15 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-dvh bg-gray-50 py-10 px-4 sm:px-6 lg:px-8 overflow-y-auto">
+    <div className="min-h-dvh bg-gray-50 py-10 px-4 sm:px-6 lg:px-8 overflow-y-auto flex flex-col justify-center">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex justify-center"
         >
-          <div className="h-12 w-12 bg-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/30">
-            <Package className="text-white h-7 w-7" />
+          <div className="h-16 w-16 bg-primary-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-primary-500/30">
+            <Package className="text-white h-9 w-9" />
           </div>
         </motion.div>
         <motion.h2 
@@ -68,15 +68,15 @@ export default function Login() {
           transition={{ delay: 0.1 }}
           className="mt-6 text-center text-3xl font-extrabold text-gray-900 tracking-tight"
         >
-          AE Delivery
+          Sheetpilot.in
         </motion.h2>
         <motion.p 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="mt-2 text-center text-sm text-gray-600"
+          className="mt-2 text-center text-sm text-gray-500"
         >
-          {isSignUp ? 'Create your account' : 'Sign in to your account'}
+          {isSignUp ? 'Create your brand account' : 'Sign in to your dashboard'}
         </motion.p>
       </div>
 
@@ -86,12 +86,13 @@ export default function Login() {
         transition={{ delay: 0.3 }}
         className="mt-8 sm:mx-auto sm:w-full sm:max-w-md"
       >
-        <div className="bg-white py-8 px-4 shadow-xl shadow-gray-200/50 sm:rounded-2xl sm:px-10 border border-gray-100">
+        <div className="bg-white py-8 px-4 shadow-xl shadow-gray-200/50 sm:rounded-3xl sm:px-10 border border-gray-100 relative overflow-hidden">
+          
           {/* Method toggle */}
-          <div className="flex bg-gray-100 rounded-lg p-1 mb-6">
+          <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
             <button
               onClick={() => { setMethod('email'); setError('') }}
-              className={`flex-1 flex justify-center items-center py-2 text-sm font-medium rounded-md transition-all ${
+              className={`flex-1 flex justify-center items-center py-2 text-sm font-bold rounded-lg transition-all ${
                 method === 'email' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -99,11 +100,11 @@ export default function Login() {
             </button>
             <button
               onClick={() => { setMethod('phone'); setError('') }}
-              className={`flex-1 flex justify-center items-center py-2 text-sm font-medium rounded-md transition-all ${
+              className={`flex-1 flex justify-center items-center py-2 text-sm font-bold rounded-lg transition-all ${
                 method === 'phone' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              <Smartphone className="w-4 h-4 mr-2" /> Phone (OTP)
+              <Smartphone className="w-4 h-4 mr-2" /> Phone
             </button>
           </div>
 
@@ -117,7 +118,7 @@ export default function Login() {
 
           {/* Email form */}
           {method === 'email' && (
-            <form className="space-y-5" onSubmit={handleEmailLogin}>
+            <form className="space-y-5 relative z-10" onSubmit={handleEmailLogin}>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Email address</label>
                 <input
@@ -125,7 +126,7 @@ export default function Login() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="mt-1 appearance-none block w-full px-3 py-2.5 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-50/50"
+                  className="mt-1 appearance-none block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
                   placeholder="you@example.com"
                 />
               </div>
@@ -137,7 +138,7 @@ export default function Login() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="appearance-none block w-full px-3 py-2.5 pr-10 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-50/50"
+                    className="appearance-none block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
                     placeholder="••••••••"
                     minLength={6}
                   />
@@ -153,7 +154,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors group"
+                className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-xl text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all group active:scale-[0.98]"
               >
                 <span className="flex items-center">
                   {loading ? 'Please wait...' : (isSignUp ? 'Create Account' : 'Sign in')}
@@ -163,9 +164,9 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => { setIsSignUp(!isSignUp); setError('') }}
-                className="w-full text-sm text-gray-500 hover:text-primary-600 transition-colors mt-2"
+                className="w-full text-sm text-gray-500 hover:text-primary-600 transition-colors mt-2 font-medium"
               >
-                {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+                {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Create one"}
               </button>
             </form>
           )}

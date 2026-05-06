@@ -7,8 +7,11 @@ import {
   Eye, Camera, FileSignature, CalendarDays, Clock, MessageSquare, Phone,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import DateRangePicker from '../../components/DateRangePicker'
 import { geocodeAddress, haversineKm, RR_NAGAR_HUB } from '../../lib/routing'
 import * as XLSX from 'xlsx'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 type OrderAddress = {
   id: string
@@ -79,7 +82,7 @@ type BulkRow = {
 
 const STATUS_COLORS: Record<string, string> = {
   pending:     'bg-orange-100 text-orange-700',
-  confirmed:   'bg-blue-100 text-blue-700',
+  confirmed:   'bg-emerald-100 text-emerald-700',
   shipped:     'bg-purple-100 text-purple-700',
   delivered:   'bg-emerald-100 text-emerald-700',
   cancelled:   'bg-red-100 text-red-700',
@@ -105,6 +108,7 @@ export default function OrdersView() {
   const [addError, setAddError] = useState('')
 
   // Bulk upload
+  const [showExport, setShowExport] = useState(false)
   const [showBulk, setShowBulk] = useState(false)
   const [bulkRows, setBulkRows] = useState<BulkRow[]>([])
   const [bulkImporting, setBulkImporting] = useState(false)
@@ -135,11 +139,18 @@ export default function OrdersView() {
   const [creating, setCreating] = useState(false)
   const [assignError, setAssignError] = useState('')
 
-  useEffect(() => { loadOrders() }, [])
+  // Date Filter Range
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0])
+  const [endDate, setEndDate]   = useState(new Date().toISOString().split('T')[0])
+
+  useEffect(() => { loadOrders() }, [startDate, endDate])
 
   async function loadOrders() {
     setLoading(true)
-    const { data, error } = await supabase.rpc('get_all_orders')
+    const { data, error } = await supabase.rpc('get_all_orders', { 
+      p_start_date: startDate,
+      p_end_date: endDate 
+    })
     if (error) console.error('loadOrders error:', error.message)
     if (data) {
       setOrders(data.map((o: any) => ({
@@ -245,6 +256,77 @@ export default function OrdersView() {
     } finally {
       setAddLoading(false)
     }
+  }
+
+  // ── EXPORT DATA ───────────────────────────────────────────
+  function exportToXLSX() {
+    const data = orders.map(o => ({
+      'Date': new Date(o.created_at!).toLocaleDateString('en-IN'),
+      'Order ID': o.id.split('-')[0].toUpperCase(),
+      'Customer': o.customer_name,
+      'Phone': o.customer_phone,
+      'Amount': o.total_amount,
+      'Status': o.status?.toUpperCase(),
+      'Payment': o.payment_method,
+      'Address': o.addresses ? `${o.addresses.street}, ${o.addresses.city}` : '',
+      'Driver': o.driver_name || 'Unassigned'
+    }))
+    const ws = XLSX.utils.json_to_sheet(data)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Orders Report')
+    XLSX.writeFile(wb, `orders_report_${startDate}_to_${endDate}.xlsx`)
+  }
+
+  function exportToCSV() {
+    const headers = ['Date', 'Order ID', 'Customer', 'Phone', 'Amount', 'Status', 'Payment', 'Address', 'Driver']
+    const data = orders.map(o => [
+      new Date(o.created_at!).toLocaleDateString('en-IN'),
+      o.id.split('-')[0].toUpperCase(),
+      o.customer_name,
+      o.customer_phone,
+      o.total_amount,
+      o.status?.toUpperCase(),
+      o.payment_method,
+      o.addresses ? `${o.addresses.street}, ${o.addresses.city}`.replace(/,/g, ' ') : '',
+      o.driver_name || 'Unassigned'
+    ])
+    const csvContent = [headers, ...data].map(e => e.join(",")).join("\n")
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement("a")
+    link.href = URL.createObjectURL(blob)
+    link.setAttribute("download", `orders_report_${startDate}_to_${endDate}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  function exportToPDF() {
+    const doc = new jsPDF()
+    doc.setFontSize(18)
+    doc.text('AE Tracking - Orders Report', 14, 20)
+    doc.setFontSize(10)
+    doc.text(`Period: ${startDate} to ${endDate}`, 14, 28)
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 33)
+
+    const tableData = orders.map(o => [
+      new Date(o.created_at!).toLocaleDateString('en-IN'),
+      o.customer_name || '',
+      `Rs. ${o.total_amount}`,
+      o.status?.toUpperCase() || '',
+      o.payment_method || '',
+      o.driver_name || 'Unassigned'
+    ])
+
+    autoTable(doc, {
+      startY: 40,
+      head: [['Date', 'Customer', 'Amount', 'Status', 'Payment', 'Driver']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [22, 163, 74] }, // Brand Green
+      styles: { fontSize: 8 }
+    })
+
+    doc.save(`orders_report_${startDate}_to_${endDate}.pdf`)
   }
 
   // ── BULK UPLOAD ─────────────────────────────────────────────
@@ -470,6 +552,47 @@ export default function OrdersView() {
           <button onClick={loadOrders} className="p-2.5 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 shadow-sm transition-colors">
             <RefreshCw className="w-4 h-4 text-gray-600" />
           </button>
+          
+          <DateRangePicker 
+            startDate={startDate}
+            endDate={endDate}
+            onChange={(s, e) => { setStartDate(s); setEndDate(e) }}
+          />
+
+          <div className="relative">
+            <button
+              onClick={() => setShowExport(!showExport)}
+              className="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-xl font-semibold shadow-sm flex items-center gap-2 transition-colors"
+            >
+              <Download className="w-4 h-4 text-primary-600" /> Export
+              <ChevronDown className={`w-3 h-3 transition-transform ${showExport ? 'rotate-180' : ''}`} />
+            </button>
+            <AnimatePresence>
+              {showExport && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute top-full mt-2 right-0 z-50 bg-white border border-gray-200 rounded-2xl shadow-2xl p-2 min-w-[160px]"
+                >
+                  {[
+                    { label: 'Download PDF',   onClick: exportToPDF,   icon: <FileSignature className="w-4 h-4 text-red-500" /> },
+                    { label: 'Download XLSX',  onClick: exportToXLSX,  icon: <CheckSquare   className="w-4 h-4 text-emerald-600" /> },
+                    { label: 'Download CSV',   onClick: exportToCSV,   icon: <Clock         className="w-4 h-4 text-blue-500" /> },
+                  ].map(opt => (
+                    <button
+                      key={opt.label}
+                      onClick={() => { opt.onClick(); setShowExport(false) }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-xl transition-colors font-medium"
+                    >
+                      {opt.icon} {opt.label}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
           <button
             onClick={() => { setShowBulk(true); setBulkRows([]); setBulkResult('') }}
             className="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-xl font-semibold shadow-sm flex items-center gap-2 transition-colors"
@@ -483,9 +606,8 @@ export default function OrdersView() {
             <Plus className="w-4 h-4" /> Add Order
           </button>
           <button
-            disabled={selected.size === 0}
             onClick={openAssignModal}
-            className="bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl font-semibold shadow-sm flex items-center gap-2 transition-colors"
+            className="bg-primary-600 hover:bg-primary-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-primary-600/20 flex items-center gap-2 transition-all active:scale-95"
           >
             <Navigation className="w-4 h-4" /> Assign to Driver ({selected.size})
           </button>
@@ -505,33 +627,33 @@ export default function OrdersView() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-gray-50/50 border-b border-gray-200">
+                <tr className="bg-gray-50 border-b border-gray-100">
                   <th className="p-4 w-12">
                     <button onClick={toggleAll} className="text-gray-400 hover:text-primary-600">
                       {allSelected ? <CheckSquare className="w-5 h-5 text-primary-600" /> : <Square className="w-5 h-5" />}
                     </button>
                   </th>
-                  <th className="p-4 text-sm font-semibold text-gray-600">Customer</th>
-                  <th className="p-4 text-sm font-semibold text-gray-600">Address</th>
-                  <th className="p-4 text-sm font-semibold text-gray-600">Status</th>
-                  <th className="p-4 text-sm font-semibold text-gray-600">Driver</th>
-                  <th className="p-4 text-sm font-semibold text-gray-600">Payment</th>
-                  <th className="p-4 text-sm font-semibold text-gray-600">Amount</th>
-                  <th className="p-4 text-sm font-semibold text-gray-600">Date</th>
+                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Customer</th>
+                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Address</th>
+                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Driver</th>
+                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Payment</th>
+                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
                   <th className="p-4 w-10"></th>
                 </tr>
               </thead>
               <tbody>
                 {orders.map(order => (
-                  <tr key={order.id} className={`border-b border-gray-100 last:border-0 hover:bg-gray-50/40 transition-colors ${selected.has(order.id) ? 'bg-primary-50/40' : ''}`}>
+                  <tr key={order.id} className={`border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors ${selected.has(order.id) ? 'bg-primary-50' : ''}`}>
                     <td className="p-4">
                       <button onClick={() => toggleSelect(order.id)} className="text-gray-400 hover:text-primary-600">
                         {selected.has(order.id) ? <CheckSquare className="w-5 h-5 text-primary-600" /> : <Square className="w-5 h-5" />}
                       </button>
                     </td>
                     <td className="p-4">
-                      <div className="text-sm font-medium text-gray-900">{order.customer_name || '—'}</div>
-                      <div className="text-xs text-gray-400">{order.customer_phone || order.id.slice(0, 8) + '...'}</div>
+                      <div className="text-sm font-bold text-gray-900">{order.customer_name || '—'}</div>
+                      <div className="text-xs text-gray-500">{order.customer_phone || order.id.slice(0, 8) + '...'}</div>
                     </td>
                     <td className="p-4 max-w-[200px]">
                       <div className="text-sm text-gray-600 flex items-start gap-1.5">
@@ -539,11 +661,6 @@ export default function OrdersView() {
                         <span className="truncate">{order.addresses ? `${order.addresses.street}, ${order.addresses.city}` : 'N/A'}</span>
                       </div>
                       {order.notes && <div className="text-xs text-gray-400 mt-0.5 ml-5 truncate">{order.notes}</div>}
-                      {order.delivery_remarks && (
-                        <div className="text-xs text-red-500 mt-0.5 ml-5 truncate font-medium" title={order.delivery_remarks}>
-                          ⚠ {order.delivery_remarks}
-                        </div>
-                      )}
                     </td>
                     <td className="p-4">
                       {(() => {
@@ -551,7 +668,7 @@ export default function OrdersView() {
                           ? order.stop_status
                           : order.status
                         return (
-                          <span className={`px-2.5 py-1 rounded-md text-xs font-semibold uppercase tracking-wider ${STATUS_COLORS[display] || 'bg-gray-100 text-gray-600'}`}>
+                          <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${STATUS_COLORS[display] || 'bg-gray-100 text-gray-600'}`}>
                             {display}
                           </span>
                         )
@@ -560,24 +677,24 @@ export default function OrdersView() {
                     <td className="p-4">
                       {order.driver_name ? (
                         <>
-                          <div className="text-sm font-medium text-gray-900">{order.driver_name}</div>
-                          <div className="text-xs text-gray-400">{order.driver_phone || ''}</div>
+                          <div className="text-sm font-bold text-gray-900">{order.driver_name}</div>
+                          <div className="text-xs text-gray-500">{order.driver_phone || ''}</div>
                         </>
                       ) : (
                         <span className="text-xs text-gray-400">—</span>
                       )}
                     </td>
-                    <td className="p-4 text-sm text-gray-600">{order.payment_method}</td>
-                    <td className="p-4 text-sm font-semibold text-gray-900">₹{Number(order.total_amount).toLocaleString()}</td>
-                    <td className="p-4 text-xs text-gray-400 whitespace-nowrap">
+                    <td className="p-4 text-sm text-gray-500">{order.payment_method}</td>
+                    <td className="p-4 text-sm font-black text-gray-900">₹{Number(order.total_amount).toLocaleString()}</td>
+                    <td className="p-4 text-xs text-gray-500 whitespace-nowrap">
                       {new Date(order.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-1">
-                        <button onClick={() => openActivity(order)} title="View driver activity" className="p-1.5 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-blue-600 transition-colors">
+                        <button onClick={() => openActivity(order)} title="View driver activity" className="p-1.5 hover:bg-primary-50 rounded-lg text-gray-400 hover:text-primary-600 transition-colors">
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button onClick={() => openEdit(order)} title="Edit order" className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-primary-600 transition-colors">
+                        <button onClick={() => openEdit(order)} title="Edit order" className="p-1.5 hover:bg-primary-50 rounded-lg text-gray-400 hover:text-primary-600 transition-colors">
                           <Pencil className="w-4 h-4" />
                         </button>
                       </div>

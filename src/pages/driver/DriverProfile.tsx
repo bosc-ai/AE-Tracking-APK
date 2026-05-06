@@ -206,29 +206,29 @@ export default function DriverProfile() {
 
       {/* Identity card */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-        className="bg-slate-900 text-white rounded-2xl p-5 shadow-xl">
+        className="bg-white text-gray-900 rounded-2xl p-5 shadow-sm border border-gray-100">
         <div className="flex items-center mb-4">
           {/* Avatar with upload overlay */}
           <div className="relative mr-4 flex-shrink-0">
-            <div className="w-16 h-16 bg-slate-700 rounded-full overflow-hidden flex items-center justify-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full overflow-hidden flex items-center justify-center border border-gray-200">
               {avatarUrl
                 ? <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                : <span className="text-2xl font-black">{p.name ? p.name[0].toUpperCase() : 'D'}</span>
+                : <span className="text-2xl font-black text-gray-400">{p.name ? p.name[0].toUpperCase() : 'D'}</span>
               }
             </div>
             <button
               onClick={() => avatarInputRef.current?.click()}
               disabled={uploading}
-              className="absolute -bottom-1 -right-1 w-7 h-7 bg-primary-600 rounded-full flex items-center justify-center shadow-lg border-2 border-slate-900 active:scale-90 transition-transform"
+              className="absolute -bottom-1 -right-1 w-7 h-7 bg-primary-600 rounded-full flex items-center justify-center shadow-lg border-2 border-white active:scale-90 transition-transform"
             >
               {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : <Camera className="w-3.5 h-3.5 text-white" />}
             </button>
             <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
           </div>
           <div>
-            <div className="text-lg font-extrabold">{p.name || 'Driver'}</div>
+            <div className="text-lg font-black text-gray-900">{p.name || 'Driver'}</div>
             {p.active_route && (
-              <div className="text-xs text-emerald-400 font-semibold mt-0.5 flex items-center">
+              <div className="text-xs text-emerald-600 font-bold mt-0.5 flex items-center">
                 <MapPin className="w-3 h-3 mr-1" /> Route active today
               </div>
             )}
@@ -236,13 +236,13 @@ export default function DriverProfile() {
         </div>
         <div className="space-y-2">
           {p.email && (
-            <div className="flex items-center text-sm text-slate-300">
-              <Mail className="w-4 h-4 mr-2 text-slate-500" /> {p.email}
+            <div className="flex items-center text-sm text-gray-600">
+              <Mail className="w-4 h-4 mr-2 text-gray-400" /> {p.email}
             </div>
           )}
           {p.phone && (
-            <div className="flex items-center text-sm text-slate-300">
-              <Phone className="w-4 h-4 mr-2 text-slate-500" /> {p.phone}
+            <div className="flex items-center text-sm text-gray-600">
+              <Phone className="w-4 h-4 mr-2 text-gray-400" /> {p.phone}
             </div>
           )}
         </div>
@@ -252,7 +252,7 @@ export default function DriverProfile() {
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
         className="grid grid-cols-2 gap-3">
         {([
-          { key: 'all'         as FilterKey, label: 'Total Stops', value: p.total_stops,                                   icon: <Package      className="w-5 h-5" />, color: 'bg-blue-50 border-blue-200 text-blue-700' },
+          { key: 'all'         as FilterKey, label: 'Total Stops', value: p.total_stops,                                   icon: <Package      className="w-5 h-5" />, color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
           { key: 'delivered'   as FilterKey, label: 'Delivered',   value: p.delivered,                                     icon: <CheckCircle2 className="w-5 h-5" />, color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
           { key: 'failed'      as FilterKey, label: 'Failed',      value: p.failed,                                        icon: <XCircle      className="w-5 h-5" />, color: 'bg-red-50 border-red-200 text-red-700' },
           { key: 'cod'         as FilterKey, label: 'COD Collected', value: `₹${Number(p.cod_collected || 0).toLocaleString()}`, icon: <IndianRupee  className="w-5 h-5" />, color: 'bg-orange-50 border-orange-200 text-orange-700' },

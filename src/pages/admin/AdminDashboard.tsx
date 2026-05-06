@@ -5,12 +5,12 @@ import {
   LogOut, Package, BarChart2, AlertTriangle, Heart,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { supabase } from '../../lib/supabase'
 import OrdersView    from './OrdersView'
 import DriversView   from './DriversView'
 import RoutesView    from './RoutesView'
 import ProductsView  from './ProductsView'
 import AnalyticsView from './AnalyticsView'
+import { useAuth } from '../../contexts/AuthContext'
 
 const NAV_ITEMS = [
   { to: '/admin',           end: true,  icon: LayoutDashboard, label: 'Orders'    },
@@ -23,16 +23,17 @@ const NAV_ITEMS = [
 export default function AdminDashboard() {
   const navigate  = useNavigate()
   const location  = useLocation()
+  const { signOut } = useAuth()
   const [showLogout, setShowLogout] = useState(false)
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    window.location.href = '/login'
+    await signOut()
+    navigate('/login', { replace: true })
   }
 
   const sideNavClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-      isActive ? 'bg-primary-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+    `flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+      isActive ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20 scale-[1.02]' : 'text-slate-500 hover:bg-gray-50 hover:text-primary-600'
     }`
 
   const mobileActive = (to: string, end: boolean) =>
@@ -42,10 +43,10 @@ export default function AdminDashboard() {
     <div className="flex bg-gray-50" style={{ minHeight: '100dvh' }}>
 
       {/* ── Desktop sidebar ── */}
-      <aside className="w-64 bg-slate-900 text-white hidden lg:flex flex-col sticky top-0 h-screen">
-        <div className="h-16 flex items-center px-6 border-b border-slate-800 flex-shrink-0">
-          <Truck className="w-6 h-6 mr-3 text-primary-400" />
-          <span className="text-lg font-bold tracking-tight">AE Delivery Admin</span>
+      <aside className="w-64 bg-white text-gray-900 hidden lg:flex flex-col sticky top-0 h-screen border-r border-gray-200 shadow-sm">
+        <div className="h-16 flex items-center px-6 border-b border-gray-100 flex-shrink-0">
+          <Truck className="w-6 h-6 mr-3 text-primary-500" />
+          <span className="text-lg font-bold tracking-tight text-gray-900">Sheetpilot.in <span className="text-primary-600 text-[10px] ml-1 px-1.5 py-0.5 bg-primary-50 rounded uppercase">Admin</span></span>
         </div>
         <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
           {NAV_ITEMS.map(({ to, end, icon: Icon, label }) => (
@@ -54,10 +55,10 @@ export default function AdminDashboard() {
             </NavLink>
           ))}
         </nav>
-        <div className="p-4 border-t border-slate-800 flex-shrink-0 space-y-3">
+        <div className="p-4 border-t border-gray-100 flex-shrink-0 space-y-3">
           <button
             onClick={() => setShowLogout(true)}
-            className="flex items-center text-sm font-medium text-slate-400 hover:text-white w-full px-3 py-2.5 rounded-lg hover:bg-slate-800 transition-colors"
+            className="flex items-center text-sm font-medium text-slate-500 hover:text-primary-600 w-full px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <LogOut className="w-5 h-5 mr-3" /> Sign Out
           </button>
@@ -73,14 +74,14 @@ export default function AdminDashboard() {
       <div className="flex-1 flex flex-col min-w-0 h-dvh overflow-hidden">
 
         {/* Mobile top header */}
-        <header className="lg:hidden bg-slate-900 text-white px-4 h-14 flex items-center justify-between sticky top-0 z-30 pt-safe flex-shrink-0">
+        <header className="lg:hidden bg-white text-gray-900 px-4 h-14 flex items-center justify-between sticky top-0 z-30 pt-safe flex-shrink-0 border-b border-gray-100 shadow-sm">
           <div className="flex items-center">
-            <Truck className="w-5 h-5 mr-2 text-primary-400" />
-            <span className="font-bold">AE Delivery Admin</span>
+            <Truck className="w-5 h-5 mr-2 text-primary-500" />
+            <span className="font-bold">Sheetpilot Admin</span>
           </div>
           <button
             onClick={() => setShowLogout(true)}
-            className="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 text-slate-300"
+            className="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-50 text-slate-500"
           >
             <LogOut className="w-5 h-5" />
           </button>
@@ -99,7 +100,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* ── Mobile bottom nav ── */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900 border-t border-slate-800 pb-safe">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 pb-safe shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
         <div className="flex justify-around">
           {NAV_ITEMS.map(({ to, end, icon: Icon, label }) => {
             const active = mobileActive(to, end)
@@ -108,7 +109,7 @@ export default function AdminDashboard() {
                 key={to}
                 onClick={() => navigate(to)}
                 className={`flex flex-col items-center justify-center flex-1 py-2.5 gap-0.5 active:scale-90 transition-transform ${
-                  active ? 'text-primary-400' : 'text-slate-500'
+                  active ? 'text-primary-500' : 'text-slate-400'
                 }`}
               >
                 <Icon className="w-5 h-5" />

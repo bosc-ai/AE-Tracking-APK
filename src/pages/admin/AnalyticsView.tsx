@@ -36,7 +36,7 @@ function StatCard({ icon, label, value, sub, color = 'gray', onClick }: {
   sub?: string; color?: string; onClick?: () => void
 }) {
   const bg: Record<string, string> = {
-    blue: 'bg-blue-50 border-blue-200', emerald: 'bg-emerald-50 border-emerald-200',
+    primary: 'bg-primary-50 border-primary-200', emerald: 'bg-emerald-50 border-emerald-200',
     orange: 'bg-orange-50 border-orange-200', purple: 'bg-purple-50 border-purple-200',
     red: 'bg-red-50 border-red-200', gray: 'bg-gray-50 border-gray-200',
   }
@@ -226,7 +226,7 @@ export default function AnalyticsView() {
       <section>
         <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Today</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatCard icon={<Package className="w-5 h-5" />} label="Orders Today" value={d.orders_today} color="blue"
+          <StatCard icon={<Package className="w-5 h-5" />} label="Orders Today" value={d.orders_today} color="primary"
             onClick={() => openPanel({ title: "Today's Orders", subtitle: 'All orders placed today', filter: o => o.created_at?.startsWith(todayStr) })} />
           <StatCard icon={<IndianRupee className="w-5 h-5" />} label="Revenue Today" value={`₹${fmt(Number(d.revenue_today))}`} color="emerald"
             onClick={() => openPanel({ title: "Today's Delivered", subtitle: 'Delivered orders today', filter: o => o.created_at?.startsWith(todayStr) && o.status === 'delivered' })} />

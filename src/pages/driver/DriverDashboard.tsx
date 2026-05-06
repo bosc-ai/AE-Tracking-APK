@@ -13,7 +13,7 @@ import DriverProfile from './DriverProfile'
 export default function DriverDashboard() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
   const [gpsActive, setGpsActive] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [driverName, setDriverName] = useState('')
@@ -31,8 +31,8 @@ export default function DriverDashboard() {
 
   const handleLogout = async () => {
     stopGPSPinging()
-    await supabase.auth.signOut()
-    window.location.href = '/login'
+    await signOut()
+    navigate('/login', { replace: true })
   }
 
   const toggleGPS = () => {
@@ -54,29 +54,32 @@ export default function DriverDashboard() {
     <div className="flex flex-col bg-gray-50 h-screen h-[100dvh] overflow-hidden">
 
       {/* Header — pushes below status bar */}
-      <header className="bg-slate-900 text-white flex-shrink-0 pt-safe shadow-lg z-40">
+      <header className="bg-white text-gray-900 flex-shrink-0 pt-safe shadow-sm z-40 border-b border-gray-100">
         <div className="max-w-md mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center">
-            <div className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center mr-3 flex-shrink-0 border border-slate-700">
-              <span className="font-bold text-sm text-emerald-400">{driverName ? driverName[0].toUpperCase() : 'DR'}</span>
+          <button 
+            onClick={() => navigate('/driver/profile')}
+            className="flex items-center text-left active:scale-95 transition-transform"
+          >
+            <div className="w-10 h-10 bg-primary-50 rounded-full flex items-center justify-center mr-3 flex-shrink-0 border border-primary-100">
+              <span className="font-black text-sm text-primary-600">{driverName ? driverName[0].toUpperCase() : 'DR'}</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-bold text-white leading-tight truncate max-w-[120px]">{driverName || "Driver"}</span>
-              <span className={`text-[10px] font-bold uppercase tracking-wider ${gpsActive ? 'text-emerald-400' : 'text-slate-500'}`}>
+              <span className="text-sm font-black text-gray-900 leading-tight truncate max-w-[120px]">{driverName || "Driver"}</span>
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${gpsActive ? 'text-emerald-600' : 'text-gray-400'}`}>
                 {gpsActive ? 'GPS Active' : 'GPS Off'}
               </span>
             </div>
-          </div>
+          </button>
           <div className="flex items-center gap-1">
             <button
               onClick={toggleGPS}
-              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-90 ${gpsActive ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}
+              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-90 ${gpsActive ? 'bg-primary-600 text-white shadow-md shadow-primary-600/20' : 'bg-gray-50 text-gray-400 border border-gray-200'}`}
             >
               <Radio className="w-5 h-5" />
             </button>
             <button
               onClick={() => setShowLogoutConfirm(true)}
-              className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 bg-slate-800 border border-slate-700 active:scale-90 transition-all"
+              className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-400 bg-gray-50 border border-gray-200 active:scale-90 transition-all"
             >
               <LogOut className="w-5 h-5" />
             </button>
@@ -147,7 +150,7 @@ export default function DriverDashboard() {
       </AnimatePresence>
 
       {/* Bottom nav — respects home bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900 border-t border-slate-800 pb-safe">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 pb-safe shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
         <div className="max-w-md mx-auto flex justify-around">
           {[
             { label: 'Route',    icon: MapPinned,  active: isRouteActive,   onClick: () => navigate('/driver') },
@@ -157,10 +160,10 @@ export default function DriverDashboard() {
             <button
               key={label}
               onClick={onClick}
-              className={`flex flex-col items-center justify-center flex-1 py-3 gap-1 active:scale-90 transition-transform ${active ? 'text-emerald-400' : 'text-slate-500'}`}
+              className={`flex flex-col items-center justify-center flex-1 py-3 gap-1 active:scale-90 transition-transform ${active ? 'text-primary-600' : 'text-gray-400'}`}
             >
               <Icon className={`w-6 h-6 ${active && label === 'Route' ? 'animate-pulse' : ''}`} />
-              <span className="text-[10px] font-bold">{label}</span>
+              <span className="text-[10px] font-black">{label}</span>
             </button>
           ))}
         </div>

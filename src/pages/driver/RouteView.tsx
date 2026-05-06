@@ -3,10 +3,11 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   Navigation, IndianRupee, ChevronRight, CheckCircle2,
-  XCircle, Clock, Package, Loader2, RefreshCw,
+  XCircle, Clock, Package, Loader2, RefreshCw, CalendarDays,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
+import DateRangePicker from '../../components/DateRangePicker'
 
 export type Stop = {
   id: string
@@ -19,6 +20,7 @@ export type Stop = {
   codAmount: number
   paymentMethod: string
   status: 'pending' | 'delivered' | 'failed' | 'rescheduled'
+  routeDate: string
 }
 
 const STATUS_BG: Record<Stop['status'], string> = {
@@ -50,13 +52,18 @@ export default function RouteView() {
   const [loading, setLoading]   = useState(true)
   const [noRoute, setNoRoute]   = useState(false)
   const [loadError, setLoadError] = useState('')
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0])
+  const [endDate, setEndDate]   = useState(new Date().toISOString().split('T')[0])
 
-  useEffect(() => { if (user) loadTodayRoute() }, [user, location.key])
+  useEffect(() => { if (user) loadTodayRoute() }, [user, location.key, startDate, endDate])
 
   async function loadTodayRoute() {
     setLoading(true)
     setLoadError('')
-    const { data, error } = await supabase.rpc('get_driver_today_stops')
+    const { data, error } = await supabase.rpc('get_driver_stops', { 
+      p_start_date: startDate,
+      p_end_date: endDate 
+    })
     if (error) { setLoadError(error.message); setLoading(false); return }
 
     if (!data || data.length === 0) { setNoRoute(true); setLoading(false); return }
@@ -74,6 +81,7 @@ export default function RouteView() {
       codAmount:    s.payment_method === 'COD' ? Number(s.total_amount) : 0,
       paymentMethod:s.payment_method || 'COD',
       status:       (s.stop_status || 'pending').toLowerCase() as Stop['status'],
+      routeDate:    s.route_date
     })))
     setNoRoute(false)
     setLoading(false)
@@ -83,6 +91,7 @@ export default function RouteView() {
   const totalCODCollected = stops.filter(s => s.status === 'delivered').reduce((sum, s) => sum + s.codAmount, 0)
   const totalCODPending   = stops.filter(s => s.status === 'pending').reduce((sum, s) => sum + s.codAmount, 0)
   const remainingCount    = stops.filter(s => s.status === 'pending').length
+  const overdueCount      = stops.filter(s => s.status === 'pending' && s.routeDate < new Date().toISOString().split('T')[0]).length
   const progressPct       = stops.length ? (completedCount / stops.length) * 100 : 0
 
   if (loading) return (
@@ -96,7 +105,7 @@ export default function RouteView() {
       <XCircle className="w-16 h-16 text-red-300 mb-4" />
       <h3 className="text-xl font-bold text-gray-700 mb-2">Failed to load route</h3>
       <p className="text-gray-400 text-sm mb-8">{loadError}</p>
-      <button onClick={loadTodayRoute} className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-2 text-base">
+      <button onClick={loadTodayRoute} className="bg-primary-600 text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-2 text-base shadow-lg shadow-primary-600/20">
         <RefreshCw className="w-5 h-5" /> Try Again
       </button>
     </div>
@@ -123,7 +132,7 @@ export default function RouteView() {
       <p className="text-gray-500 mb-1">{stops.filter(s => s.status === 'delivered').length} of {stops.length} delivered</p>
       <p className="text-emerald-600 font-black text-xl mb-10">₹{totalCODCollected.toLocaleString()} collected</p>
       <button onClick={() => navigate('/driver/summary')}
-        className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold text-base shadow-xl mb-3">
+        className="w-full bg-primary-600 text-white py-4 rounded-2xl font-bold text-base shadow-xl mb-3 border border-primary-500">
         View Cash Summary
       </button>
       <button onClick={loadTodayRoute} className="text-gray-400 font-semibold text-sm flex items-center gap-1.5 py-2">
@@ -134,42 +143,62 @@ export default function RouteView() {
 
   return (
     <div className="space-y-4 pb-4">
+      {/* Date Filter */}
+      <div className="flex flex-col bg-white p-4 rounded-2xl shadow-sm border border-gray-100 gap-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="w-5 h-5 text-primary-600" />
+            <span className="text-sm font-bold text-gray-700">View History</span>
+          </div>
+          <DateRangePicker 
+            startDate={startDate}
+            endDate={endDate}
+            onChange={(s, e) => { setStartDate(s); setEndDate(e) }}
+            align="right"
+          />
+        </div>
+      </div>
+
       {/* Progress card */}
-      <div className="bg-slate-900 rounded-2xl p-5 text-white shadow-xl">
+      <div className="bg-white rounded-2xl p-5 text-gray-900 shadow-sm border border-gray-100 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 blur-3xl rounded-full -mr-16 -mt-16" />
         <div className="flex justify-between items-start mb-4">
           <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Today's Route</span>
-            <h2 className="text-3xl font-black mt-0.5 leading-tight">{completedCount} / {stops.length}</h2>
-            <span className="text-slate-400 text-sm font-medium">stops delivered</span>
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Route Progress</span>
+            <h2 className="text-3xl font-black mt-0.5 leading-tight text-gray-900">{completedCount} / {stops.length}</h2>
+            <span className="text-gray-500 text-sm font-medium">stops delivered</span>
           </div>
           <div className="text-right">
-            <button onClick={loadTodayRoute} className="text-slate-600 mb-2 flex justify-end ml-auto p-1">
+            <button onClick={loadTodayRoute} className="text-gray-300 mb-2 flex justify-end ml-auto p-1">
               <RefreshCw className="w-4 h-4" />
             </button>
-            <span className="text-[11px] text-slate-400 font-medium block">COD Collected</span>
-            <span className="text-2xl font-black text-emerald-400 flex items-center justify-end">
+            <span className="text-[11px] text-gray-400 font-medium block">COD Collected</span>
+            <span className="text-2xl font-black text-primary-600 flex items-center justify-end">
               <IndianRupee className="w-4 h-4 mr-0.5" />{totalCODCollected.toLocaleString()}
             </span>
           </div>
         </div>
         {/* Progress bar */}
-        <div className="w-full bg-slate-700 rounded-full h-3 mb-2">
+        <div className="w-full bg-gray-100 rounded-full h-3 mb-2">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${progressPct}%` }}
             transition={{ duration: 0.8, ease: 'easeOut' }}
-            className="bg-emerald-400 h-3 rounded-full"
+            className="bg-primary-500 h-3 rounded-full shadow-sm"
           />
         </div>
-        <div className="flex justify-between text-xs text-slate-500 font-medium">
+        <div className="flex justify-between text-xs text-gray-500 font-medium">
           <span>Pending COD: ₹{totalCODPending.toLocaleString()}</span>
-          <span>{remainingCount} remaining</span>
+          <span>{remainingCount} remaining {overdueCount > 0 && <span className="text-red-500 font-bold ml-1">({overdueCount} Overdue)</span>}</span>
         </div>
       </div>
 
       {/* Stop list */}
       <div className="space-y-3 pb-8">
-        {stops.map((stop) => (
+        {stops.map((stop) => {
+          const isOverdue = stop.status === 'pending' && stop.routeDate < new Date().toISOString().split('T')[0]
+          
+          return (
           <div
             key={stop.id}
             onClick={() => navigate(`/driver/stop/${stop.id}`)}
@@ -182,7 +211,10 @@ export default function RouteView() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 mb-0.5">
-                  <h4 className="font-bold text-gray-900 text-base truncate">{stop.customerName}</h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-bold text-gray-900 text-base truncate">{stop.customerName}</h4>
+                    {isOverdue && <span className="text-[9px] font-black bg-red-100 text-red-600 px-1.5 py-0.5 rounded uppercase">Overdue</span>}
+                  </div>
                   <StatusIcon status={stop.status} />
                 </div>
                 <p className="text-sm text-gray-500 truncate">{stop.address}</p>
@@ -215,7 +247,8 @@ export default function RouteView() {
               </button>
             )}
           </div>
-        ))}
+        )
+      })}
       </div>
     </div>
   )
