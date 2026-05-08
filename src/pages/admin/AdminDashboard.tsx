@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
   Users, Truck, Route as RouteIcon, LayoutDashboard,
-  LogOut, Package, BarChart2, AlertTriangle, Heart,
+  LogOut, Package, BarChart2, AlertTriangle, Heart, ChevronsLeft, ChevronsRight,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import OrdersView    from './OrdersView'
@@ -24,17 +24,13 @@ export default function AdminDashboard() {
   const navigate  = useNavigate()
   const location  = useLocation()
   const { signOut } = useAuth()
-  const [showLogout, setShowLogout] = useState(false)
+  const [showLogout, setShowLogout]     = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   const handleLogout = async () => {
     await signOut()
     navigate('/login', { replace: true })
   }
-
-  const sideNavClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
-      isActive ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20 scale-[1.02]' : 'text-slate-500 hover:bg-gray-50 hover:text-primary-600'
-    }`
 
   const mobileActive = (to: string, end: boolean) =>
     end ? location.pathname === to : location.pathname.startsWith(to)
@@ -43,30 +39,76 @@ export default function AdminDashboard() {
     <div className="flex bg-gray-50" style={{ minHeight: '100dvh' }}>
 
       {/* ── Desktop sidebar ── */}
-      <aside className="w-64 bg-white text-gray-900 hidden lg:flex flex-col sticky top-0 h-screen border-r border-gray-200 shadow-sm">
-        <div className="h-16 flex items-center px-6 border-b border-gray-100 flex-shrink-0">
-          <Truck className="w-6 h-6 mr-3 text-primary-500" />
-          <span className="text-lg font-bold tracking-tight text-gray-900">Sheetpilot.in <span className="text-primary-600 text-[10px] ml-1 px-1.5 py-0.5 bg-primary-50 rounded uppercase">Admin</span></span>
+      <aside
+        className={`bg-white text-gray-900 hidden lg:flex flex-col sticky top-0 h-screen border-r border-gray-200 shadow-sm transition-all duration-300 ${
+          sidebarCollapsed ? 'w-16' : 'w-64'
+        }`}
+      >
+        {/* Logo / header row */}
+        <div className="h-16 flex items-center px-3 border-b border-gray-100 flex-shrink-0 justify-between">
+          {!sidebarCollapsed && (
+            <div className="flex items-center overflow-hidden">
+              <Truck className="w-6 h-6 mr-3 text-primary-500 flex-shrink-0" />
+              <span className="text-lg font-bold tracking-tight text-gray-900 whitespace-nowrap">
+                Sheetpilot.in{' '}
+                <span className="text-primary-600 text-[10px] ml-1 px-1.5 py-0.5 bg-primary-50 rounded uppercase">Admin</span>
+              </span>
+            </div>
+          )}
+          {sidebarCollapsed && <Truck className="w-6 h-6 text-primary-500 mx-auto" />}
+          {/* Toggle button */}
+          <button
+            onClick={() => setSidebarCollapsed(v => !v)}
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className={`flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:bg-gray-100 hover:text-primary-600 transition-colors flex-shrink-0 ${
+              sidebarCollapsed ? 'mx-auto' : 'ml-2'
+            }`}
+          >
+            {sidebarCollapsed
+              ? <><ChevronsRight className="w-4 h-4" /></>
+              : <><ChevronsLeft className="w-4 h-4" /></>}
+          </button>
         </div>
-        <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
+
+        <nav className="flex-1 py-6 px-2 space-y-1 overflow-y-auto">
           {NAV_ITEMS.map(({ to, end, icon: Icon, label }) => (
-            <NavLink key={to} to={to} end={end} className={sideNavClass}>
-              <Icon className="w-5 h-5 mr-3 flex-shrink-0" />{label}
+            <NavLink
+              key={to} to={to} end={end}
+              className={({ isActive }) =>
+                `flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  sidebarCollapsed ? 'justify-center' : ''
+                } ${
+                  isActive
+                    ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20 scale-[1.02]'
+                    : 'text-slate-500 hover:bg-gray-50 hover:text-primary-600'
+                }`
+              }
+              title={sidebarCollapsed ? label : undefined}
+            >
+              <Icon className={`w-5 h-5 flex-shrink-0 ${sidebarCollapsed ? '' : 'mr-3'}`} />
+              {!sidebarCollapsed && label}
             </NavLink>
           ))}
         </nav>
-        <div className="p-4 border-t border-gray-100 flex-shrink-0 space-y-3">
+
+        <div className="p-3 border-t border-gray-100 flex-shrink-0 space-y-2">
           <button
             onClick={() => setShowLogout(true)}
-            className="flex items-center text-sm font-medium text-slate-500 hover:text-primary-600 w-full px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors"
+            title={sidebarCollapsed ? 'Sign Out' : undefined}
+            className={`flex items-center text-sm font-medium text-slate-500 hover:text-primary-600 w-full px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors ${
+              sidebarCollapsed ? 'justify-center' : ''
+            }`}
           >
-            <LogOut className="w-5 h-5 mr-3" /> Sign Out
+            <LogOut className={`w-5 h-5 flex-shrink-0 ${sidebarCollapsed ? '' : 'mr-3'}`} />
+            {!sidebarCollapsed && 'Sign Out'}
           </button>
-          <div className="px-3 pt-2 space-y-0.5">
-            <p className="text-[10px] text-slate-600">© 2026 serves.in — All rights reserved</p>
-            <p className="text-[10px] text-slate-600 flex items-center gap-0.5">Created by Prateek & Team with <Heart className="w-2.5 h-2.5 text-red-400 fill-red-400" /></p>
-            <p className="text-[10px] text-slate-600"><a href="mailto:tools.prateek@gmail.com" className="text-slate-500 hover:text-primary-400 transition-colors">tools.prateek@gmail.com</a></p>
-          </div>
+          {!sidebarCollapsed && (
+            <div className="px-3 pt-1 space-y-0.5">
+              <p className="text-[10px] text-slate-600">© 2026 serves.in — All rights reserved</p>
+              <p className="text-[10px] text-slate-600 flex items-center gap-0.5">Created by Prateek & Team with <Heart className="w-2.5 h-2.5 text-red-400 fill-red-400" /></p>
+              <p className="text-[10px] text-slate-600"><a href="mailto:tools.prateek@gmail.com" className="text-slate-500 hover:text-primary-400 transition-colors">tools.prateek@gmail.com</a></p>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -74,7 +116,7 @@ export default function AdminDashboard() {
       <div className="flex-1 flex flex-col min-w-0 h-dvh overflow-hidden">
 
         {/* Mobile top header */}
-        <header className="lg:hidden bg-white text-gray-900 px-4 h-14 flex items-center justify-between sticky top-0 z-30 pt-safe flex-shrink-0 border-b border-gray-100 shadow-sm">
+        <header className="lg:hidden bg-white text-gray-900 px-4 h-14 flex items-center justify-between sticky top-0 z-20 pt-safe flex-shrink-0 border-b border-gray-100 shadow-sm">
           <div className="flex items-center">
             <Truck className="w-5 h-5 mr-2 text-primary-500" />
             <span className="font-bold">Sheetpilot Admin</span>
@@ -88,7 +130,7 @@ export default function AdminDashboard() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-4 lg:p-8 overflow-y-auto pb-24 lg:pb-8">
+        <main className="flex-1 p-4 lg:p-8 overflow-y-auto overflow-x-visible pb-24 lg:pb-8">
           <Routes>
             <Route path="/"          element={<OrdersView />} />
             <Route path="/drivers"   element={<DriversView />} />

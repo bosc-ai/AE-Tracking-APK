@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import {
   CheckSquare, Square, Navigation, RefreshCw, Plus, Upload, Download,
   X, ChevronUp, ChevronDown, Truck, Loader2, AlertCircle, CheckCircle, Pencil, Trash2, AlertTriangle,
-  Eye, Camera, FileSignature, CalendarDays, Clock, MessageSquare, Phone,
+  Eye, Camera, FileSignature, CalendarDays, Clock, MessageSquare, Phone, Filter,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import DateRangePicker from '../../components/DateRangePicker'
@@ -95,6 +96,95 @@ const EMPTY_FORM = {
   pincode: '', landmark: '', total_amount: '', payment_method: 'COD', notes: '',
 }
 
+// ── Column Filter Dropdown (portal-based) ────────────────────────────────────
+function ColumnFilterDropdown({
+  label, options, selected, onToggle, onClear, triggerRef, isOpen, onClose,
+}: {
+  label: string
+  options: string[]
+  selected: Set<string>
+  onToggle: (v: string) => void
+  onClear: () => void
+  triggerRef: React.RefObject<HTMLButtonElement>
+  isOpen: boolean
+  onClose: () => void
+}) {
+  const dropRef = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+
+  const updatePos = useCallback(() => {
+    if (!triggerRef.current) return
+    const rect = triggerRef.current.getBoundingClientRect()
+    const dropW = 220
+    let left = rect.left
+    if (left + dropW > window.innerWidth - 8) left = window.innerWidth - dropW - 8
+    setPos({ top: rect.bottom + 6, left })
+  }, [triggerRef])
+
+  useEffect(() => {
+    if (!isOpen) return
+    updatePos()
+    const onScroll = () => updatePos()
+    const onResize = () => updatePos()
+    window.addEventListener('scroll', onScroll, true)
+    window.addEventListener('resize', onResize)
+    return () => {
+      window.removeEventListener('scroll', onScroll, true)
+      window.removeEventListener('resize', onResize)
+    }
+  }, [isOpen, updatePos])
+
+  useEffect(() => {
+    if (!isOpen) return
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node
+      if (triggerRef.current?.contains(t) || dropRef.current?.contains(t)) return
+      onClose()
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [isOpen, onClose, triggerRef])
+
+  if (!isOpen) return null
+
+  return createPortal(
+    <div
+      ref={dropRef}
+      style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 9999, minWidth: 220 }}
+      className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-2"
+    >
+      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 mb-1">
+        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{label}</span>
+        {selected.size > 0 && (
+          <button onClick={onClear} className="text-[11px] text-primary-600 font-semibold hover:underline">
+            Clear
+          </button>
+        )}
+      </div>
+      {options.map(opt => {
+        const active = selected.has(opt)
+        return (
+          <button
+            key={opt}
+            onClick={() => onToggle(opt)}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all ${
+              active ? 'bg-primary-50 text-primary-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
+              active ? 'bg-primary-500 border-primary-500' : 'border-gray-300'
+            }`}>
+              {active && <CheckCircle className="w-3 h-3 text-white" strokeWidth={3} />}
+            </span>
+            <span className="capitalize">{opt}</span>
+          </button>
+        )
+      })}
+    </div>,
+    document.body
+  )
+}
+
 export default function OrdersView() {
   const { user } = useAuth()
   const [orders, setOrders] = useState<Order[]>([])
@@ -141,7 +231,16 @@ export default function OrdersView() {
 
   // Date Filter Range
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0])
-  const [endDate, setEndDate]   = useState(new Date().toISOString().split('T')[0])
+  const [endDate, setEndDate]     = useState(new Date().toISOString().split('T')[0])
+
+  // Column Filters
+  const [filterStatus,  setFilterStatus]  = useState<Set<string>>(new Set())
+  const [filterDriver,  setFilterDriver]  = useState<Set<string>>(new Set())
+  const [filterPayment, setFilterPayment] = useState<Set<string>>(new Set())
+  const [openColFilter, setOpenColFilter] = useState<'status'|'driver'|'payment'|null>(null)
+  const filterStatusRef  = useRef<HTMLButtonElement>(null)
+  const filterDriverRef  = useRef<HTMLButtonElement>(null)
+  const filterPaymentRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => { loadOrders() }, [startDate, endDate])
 
@@ -189,11 +288,38 @@ export default function OrdersView() {
   }
 
   const pendingOrders = orders.filter(o => o.status === 'pending')
-  const allSelected = orders.length > 0 && orders.every(o => selected.has(o.id))
+
+  // Derive unique options from loaded orders
+  const statusOptions  = Array.from(new Set(orders.map(o => {
+    const d = (o.stop_status && ['rescheduled','delivered','failed'].includes(o.stop_status)) ? o.stop_status : o.status
+    return d
+  }))).sort()
+  const driverOptions  = Array.from(new Set(orders.map(o => o.driver_name || 'Unassigned'))).sort()
+  const paymentOptions = Array.from(new Set(orders.map(o => o.payment_method))).sort()
+
+  // Apply column filters
+  const filteredOrders = orders.filter(o => {
+    const display = (o.stop_status && ['rescheduled','delivered','failed'].includes(o.stop_status)) ? o.stop_status : o.status
+    if (filterStatus.size  > 0 && !filterStatus.has(display))                    return false
+    if (filterDriver.size  > 0 && !filterDriver.has(o.driver_name || 'Unassigned')) return false
+    if (filterPayment.size > 0 && !filterPayment.has(o.payment_method))          return false
+    return true
+  })
+
+  const allSelected = filteredOrders.length > 0 && filteredOrders.every(o => selected.has(o.id))
 
   const toggleAll = () => {
     if (allSelected) setSelected(new Set())
-    else setSelected(new Set(orders.map(o => o.id)))
+    else setSelected(new Set(filteredOrders.map(o => o.id)))
+  }
+
+  const toggleColFilter = (col: 'status'|'driver'|'payment') =>
+    setOpenColFilter(v => v === col ? null : col)
+
+  function toggleSet<T>(set: Set<T>, val: T): Set<T> {
+    const next = new Set(set)
+    next.has(val) ? next.delete(val) : next.add(val)
+    return next
   }
 
   async function confirmDelete() {
@@ -537,7 +663,7 @@ export default function OrdersView() {
       {/* Header */}
       <div className="flex flex-wrap justify-between items-start mb-6 gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Orders ({orders.length})</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Orders ({filteredOrders.length}{filteredOrders.length !== orders.length ? ` of ${orders.length}` : ''})</h2>
           <p className="text-gray-500 text-sm mt-1">{pendingOrders.length} pending · {selected.size} selected</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -635,16 +761,71 @@ export default function OrdersView() {
                   </th>
                   <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Customer</th>
                   <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Address</th>
-                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Driver</th>
-                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Payment</th>
+
+                  {/* STATUS filter header */}
+                  <th className="p-4">
+                    <button
+                      ref={filterStatusRef}
+                      onClick={() => toggleColFilter('status')}
+                      className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider transition-colors ${
+                        filterStatus.size > 0 ? 'text-primary-600' : 'text-gray-500 hover:text-primary-600'
+                      }`}
+                    >
+                      Status
+                      <Filter className={`w-3 h-3 ${filterStatus.size > 0 ? 'fill-primary-500 text-primary-600' : ''}`} />
+                      {filterStatus.size > 0 && (
+                        <span className="ml-0.5 bg-primary-500 text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center">
+                          {filterStatus.size}
+                        </span>
+                      )}
+                    </button>
+                  </th>
+
+                  {/* DRIVER filter header */}
+                  <th className="p-4">
+                    <button
+                      ref={filterDriverRef}
+                      onClick={() => toggleColFilter('driver')}
+                      className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider transition-colors ${
+                        filterDriver.size > 0 ? 'text-primary-600' : 'text-gray-500 hover:text-primary-600'
+                      }`}
+                    >
+                      Driver
+                      <Filter className={`w-3 h-3 ${filterDriver.size > 0 ? 'fill-primary-500 text-primary-600' : ''}`} />
+                      {filterDriver.size > 0 && (
+                        <span className="ml-0.5 bg-primary-500 text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center">
+                          {filterDriver.size}
+                        </span>
+                      )}
+                    </button>
+                  </th>
+
+                  {/* PAYMENT filter header */}
+                  <th className="p-4">
+                    <button
+                      ref={filterPaymentRef}
+                      onClick={() => toggleColFilter('payment')}
+                      className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider transition-colors ${
+                        filterPayment.size > 0 ? 'text-primary-600' : 'text-gray-500 hover:text-primary-600'
+                      }`}
+                    >
+                      Payment
+                      <Filter className={`w-3 h-3 ${filterPayment.size > 0 ? 'fill-primary-500 text-primary-600' : ''}`} />
+                      {filterPayment.size > 0 && (
+                        <span className="ml-0.5 bg-primary-500 text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center">
+                          {filterPayment.size}
+                        </span>
+                      )}
+                    </button>
+                  </th>
+
                   <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Amount</th>
                   <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
                   <th className="p-4 w-10"></th>
                 </tr>
               </thead>
               <tbody>
-                {orders.map(order => (
+                {filteredOrders.map(order => (
                   <tr key={order.id} className={`border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors ${selected.has(order.id) ? 'bg-primary-50' : ''}`}>
                     <td className="p-4">
                       <button onClick={() => toggleSelect(order.id)} className="text-gray-400 hover:text-primary-600">
@@ -706,6 +887,38 @@ export default function OrdersView() {
           </div>
         )}
       </div>
+
+      {/* ── COLUMN FILTER DROPDOWNS (portals) ─────────────────── */}
+      <ColumnFilterDropdown
+        label="Filter Status"
+        options={statusOptions}
+        selected={filterStatus}
+        onToggle={v => setFilterStatus(s => toggleSet(s, v))}
+        onClear={() => setFilterStatus(new Set())}
+        triggerRef={filterStatusRef}
+        isOpen={openColFilter === 'status'}
+        onClose={() => setOpenColFilter(null)}
+      />
+      <ColumnFilterDropdown
+        label="Filter Driver"
+        options={driverOptions}
+        selected={filterDriver}
+        onToggle={v => setFilterDriver(s => toggleSet(s, v))}
+        onClear={() => setFilterDriver(new Set())}
+        triggerRef={filterDriverRef}
+        isOpen={openColFilter === 'driver'}
+        onClose={() => setOpenColFilter(null)}
+      />
+      <ColumnFilterDropdown
+        label="Filter Payment"
+        options={paymentOptions}
+        selected={filterPayment}
+        onToggle={v => setFilterPayment(s => toggleSet(s, v))}
+        onClear={() => setFilterPayment(new Set())}
+        triggerRef={filterPaymentRef}
+        isOpen={openColFilter === 'payment'}
+        onClose={() => setOpenColFilter(null)}
+      />
 
       {/* ── EDIT ORDER MODAL ─────────────────────────────────── */}
       {editOrder && (
