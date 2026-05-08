@@ -105,7 +105,7 @@ function ColumnFilterDropdown({
   selected: Set<string>
   onToggle: (v: string) => void
   onClear: () => void
-  triggerRef: React.RefObject<HTMLButtonElement>
+  triggerRef: React.RefObject<HTMLButtonElement | null>
   isOpen: boolean
   onClose: () => void
 }) {
